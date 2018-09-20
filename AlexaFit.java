@@ -1,4 +1,4 @@
-package wiseguy;
+package alexaskill;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
