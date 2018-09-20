@@ -1,4 +1,4 @@
-package wiseguy;
+package alexaskill;
 
 
 import java.sql.Connection;
