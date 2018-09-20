@@ -1,0 +1,730 @@
+
+package alexaskill;
+
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.amazon.speech.slu.Intent;
+import com.amazon.speech.slu.Slot;
+import com.amazon.speech.speechlet.IntentRequest;
+import com.amazon.speech.speechlet.LaunchRequest;
+import com.amazon.speech.speechlet.Session;
+import com.amazon.speech.speechlet.SessionEndedRequest;
+import com.amazon.speech.speechlet.SessionStartedRequest;
+import com.amazon.speech.speechlet.Speechlet;
+import com.amazon.speech.speechlet.SpeechletException;
+import com.amazon.speech.speechlet.SpeechletResponse;
+import com.amazon.speech.ui.LinkAccountCard;
+import com.amazon.speech.ui.OutputSpeech;
+import com.amazon.speech.ui.PlainTextOutputSpeech;
+import com.amazon.speech.ui.Reprompt;
+import com.amazon.speech.ui.SimpleCard;
+import com.amazon.speech.ui.SsmlOutputSpeech;
+
+
+
+
+public class WellBeingGuruSpeechlet implements Speechlet {
+    private static final Logger log = LoggerFactory.getLogger(WellBeingGuruSpeechlet.class);
+    private static final String SLOT_ACTUAL_NUMBER = "ActualNumber";
+    private static final String SLOT_ACTUAL_DECIMAL = "ActualDecimal";
+    private static final String SLOT_TARGET_NUMBER = "TargetNumber";
+    private static final String SLOT_TARGET_DECIMAL = "TargetDecimal";
+    private static final ArrayList<String> MOTIV_LIST = new ArrayList<String>();
+    private static final ArrayList<String> HEALTHY_LIST = new ArrayList<String>();
+    private static final ArrayList<String> RANDOM_LIST = new ArrayList<String>();
+    private static final ArrayList<String> ACTUAL_LIST = new ArrayList<String>();
+    private static final ArrayList<String> TARGET_LIST = new ArrayList<String>();
+    SendMailSSL send = new SendMailSSL();
+    //AlexaDao dao = new AlexaDao();
+    private static DecimalFormat df2 = new DecimalFormat(".#");
+    static {
+    	
+        
+    	//MOTIV_LIST.add("<audio src=\"https://s3.amazonaws.com/alexamotivation/motivate1.mp3\"/>");
+    	//MOTIV_LIST.add("<audio src=\"https://s3.amazonaws.com/alexamotivation/motivate2.mp3\"/>");
+    	MOTIV_LIST.add(" <p>You know what !</p><p>Making excuses burns  <prosody volume=\"x-loud\">zero calories per hour</prosody></p><p>Stop giving excuses and just start moving !</p>");
+    	MOTIV_LIST.add("<p>Every day is another chance to get stronger, to eat better, to live healthier, and to be the best version of you.</p> <p>Don’t miss the opportunity by skipping your workout today</p>");
+    	MOTIV_LIST.add("<p>Change is just round the corner.</p> <p>Just keep running, biking, swimming, lifting, you'll get there.</p>");
+    	MOTIV_LIST.add("You’re only one workout away from a good mood. Exercises reduces stress and helps in your overall well-being. Start Exercising now !");
+    	MOTIV_LIST.add(" <p>Remember one thing ! A huge part of losing weight is believing you can do it</p><p>and realizing, it's not going to happen overnight</p>");
+    	MOTIV_LIST.add("<p>No pain, no gain ! Believe in yourself, loose weight and gain confidence</p><p>Just do it !</p>");
+    	
+    	
+    	HEALTHY_LIST.add("Beetroot is good to combat anaemia and helps in digestion. Have beetroot at least twice a week in your diet.");
+    	HEALTHY_LIST.add("Have a handful of pumpkin seeds daily. <break time=\"0.2s\" /> They are packed with proteins and rich in zinc, manganese. They are full of fiber and keep you full throughout the day");
+    	HEALTHY_LIST.add("How about a challenge for the day: <break time=\"0.2s\" />Go an entire day without eating sugar in any form. See if you can do it again another day next week.");
+    	HEALTHY_LIST.add("Work on your posture when sitting. Sitting up straight can prevent back problems and reduce back pain.");
+    	HEALTHY_LIST.add("Break up with the elevator. <break time=\"0.1s\" /> Taking the stairs whenever possible is another great way to work in a mini-workout without taking time out of your schedule.");
+    	HEALTHY_LIST.add("Coffee and tea are two of the most amazing sources of antioxidants in our diet. The key is to leave out the sugar and milk, which takes away most all their benefits. <break time=\"0.2s\" /> These two beverages boost mental health, liver health, and promote a healthy heart. ");
+    	HEALTHY_LIST.add("Activity for the weekend: <break time=\"0.1s\" /> It is kitchen cleanout time! Go through your kitchen cupboards and get rid of items that are high in sodium, fat or sugars.<break time=\"0.1s\" /> Take a note of them and look for healthier replacements.");
+    	HEALTHY_LIST.add("Get moving at work. Sedentary behavior has negative consequences on our health. Aim to stand up more often, or take a quick walk or stretch break.");
+    	HEALTHY_LIST.add("Life is essentially the sum of your habits. Make a short, realistic list of your habits. <break time=\"0.1s\" /> Which would you like to stop doing?<break time=\"0.1s\" /> Which would you like to start? It takes about a month of consistent effort to adopt a new habit, so keep trying.");
+    	
+    	RANDOM_LIST.add("Your progress is not satisfactory");
+    	RANDOM_LIST.add("You need to sweat it out more to reach your target.");
+    	RANDOM_LIST.add("With this pace, you may not reach your goal in time");
+    	
+    	ACTUAL_LIST.add("Okey ! Now");
+    	ACTUAL_LIST.add("Okey ! I took a note of it. Now");
+    	ACTUAL_LIST.add("Recorded ! Now");
+    	
+    	TARGET_LIST.add("a diet plan for you");
+    	TARGET_LIST.add("an effective diet plan for you");
+    	TARGET_LIST.add("a super awesome diet plan for you");
+    	
+    }
+    
+    @Override
+    public void onSessionStarted(final SessionStartedRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+       
+    }
+
+    @Override
+    public SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+        return getWelcomeResponse(session,session.getUser().getAccessToken(), true);
+    }
+
+    @Override
+    public SpeechletResponse onIntent(final IntentRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+
+        // Get intent from the request object.
+        Intent intent = request.getIntent();
+        String intentName = (intent != null) ? intent.getName() : null;
+
+        // Note: If the session is started with an intent, no welcome message will be rendered;
+        // rather, the intent specific response will be returned.
+        if ("ActualWeightIntent".equals(intentName)) {
+            return getActualWeightSession(intent, session);
+        }else if ("TargetWeightIntent".equals(intentName)) {
+            return geTargetWeightSession(intent, session); 
+        }else if ("DietIntent".equals(intentName)) {
+            return getDietPlanSession(intent, session); 
+        }else if ("MotivateIntent".equals(intentName)) {
+            return getMotivateSession(intent, session); 
+        }else if ("TipIntent".equals(intentName)) {
+            return getHealthyTipSession(intent, session); 
+        }else if ("DayIntent".equals(intentName)) {
+            return DayReviewSession(intent, session); 
+        }else if ("WeekIntent".equals(intentName)) {
+            return WeekReviewSession(intent, session); 
+        }else if ("ResetIntent".equals(intentName)) {
+        	return getDietPlanSession(intent, session);
+        }else if ("ActivityIntent".equals(intentName)) {
+            return getActivitySession(intent, session); 
+        }else if ("HelpIntent".equals(intentName)) {
+            return getHelp(intent, session); 
+        }else if ("AMAZON.StopIntent".equals(intentName)) {
+            PlainTextOutputSpeech outputSpeech = new PlainTextOutputSpeech();
+            outputSpeech.setText("Goodbye");
+
+            return SpeechletResponse.newTellResponse(outputSpeech);
+
+           // return setThankYou(intent, session); 
+        }else if ("CancelIntent".equals(intentName)) {
+            PlainTextOutputSpeech outputSpeech = new PlainTextOutputSpeech();
+            outputSpeech.setText("Goodbye");
+
+            return SpeechletResponse.newTellResponse(outputSpeech);
+
+           // return setThankYou(intent, session); 
+        }else {
+        	return getDefaultResp(); 
+            //throw new SpeechletException("Invalid Intent");
+        }
+    }
+
+    @Override
+    public void onSessionEnded(final SessionEndedRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+        // any cleanup logic goes here
+    }
+
+    /**
+     * Creates and returns a {@code SpeechletResponse} with a welcome message.
+     *
+     * @return SpeechletResponse spoken welcome message
+     */
+    /* old code
+    private SpeechletResponse getWelcomeResponse(Session session, String token, boolean flag) {
+        // Create the welcome message.
+    	String[] details;
+    	boolean isAskResponse = true;
+    	
+    	JsonParse parse = new JsonParse();
+    	
+    	details = parse.parseString("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", null, token);
+    	session.setAttribute("email", details[0]);
+    	session.setAttribute("username", details[1]);
+    	if(details[1]==null){
+    		details[1] = "user";
+    	}
+    	//dao.insertToken(token, details[0]+"test");
+    	String speechText;
+    	if(dao.getUser(details[0]) && flag)
+    		speechText = "Hello "+details[1]+". Good to see you back. How can I help you today? <break time=\"0.1s\" /> You can ask to review your daily progress, weekly progress, <break time=\"0.1s\" /> reset your target actual weights or just say help. <break time=\"0.1s\" /> Now, What would you like?? ";
+    	else
+        speechText ="Hi there, please specify your actual weight in k gs. For example you can say my actual weight is 60 k gs.";
+    	String repromptText =
+                "You can say help for assistance.";
+    	if(details[0]==null){
+    		speechText = "There is a problem connecting to your google account. Please go to your Alexa app and link your account.";
+    		repromptText = "Please enable again the skill in your alexa app and give the required permissions to the app on the consent screen.";
+    		isAskResponse = false;
+    	}
+        
+    	try{
+    		if(session.getUser().getAccessToken()!=null){
+    			//send.sendMailToken(session.getUser().getAccessToken());
+    		}
+    	}catch(Exception e){
+    		System.out.println("could not send mail"+e);
+    	}
+
+    	return newAskResponseWelcome("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", isAskResponse);
+    }
+    
+    */
+    
+    private SpeechletResponse getWelcomeResponse(Session session, String token, boolean flag) {
+        // Create the welcome message.
+    	String[] details;
+    	boolean isAskResponse = true;
+    	
+    	JsonParse parse = new JsonParse();
+    	
+    	details = parse.parseString("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", null, token);
+    	session.setAttribute("email", details[0]);
+    	session.setAttribute("username", details[1]);
+    	if(details[1]==null){
+    		details[1] = "user";
+    	}
+    	//dao.insertToken(token, details[0]+"test");
+    	String speechText;
+    	
+    		speechText = "Hello "+details[1]+", welcome to well being guru. How can I help you today? <break time=\"0.1s\" /> You can ask to <break time=\"0.1s\" />generate a diet plan, review your daily progress, weekly progress, or just say help. <break time=\"0.1s\" /> Now, What would you like? ";
+    	
+    	String repromptText =
+                "You can say help for assistance.";
+    	if(details[0]==null){
+    		speechText = "There is a problem connecting to your google account. Please go to your Alexa app and link your account.";
+    		repromptText = "Please enable again the skill in your alexa app and give the required permissions to the app on the consent screen.";
+    		isAskResponse = false;
+    	}
+        
+    	try{
+    		if(session.getUser().getAccessToken()!=null){
+    			//send.sendMailToken(session.getUser().getAccessToken());
+    		}
+    	}catch(Exception e){
+    		System.out.println("could not send mail"+e);
+    	}
+
+    	return newAskResponseWelcome("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", isAskResponse);
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the intent that generates diet plan
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse getDietPlanSession(Intent intent, Session session) {
+    	
+    	
+       String speechText = "Please specify your actual weight in k gs. For example you can say my actual weight is 60 k gs.";
+         String   repromptText = "You can say help for assistance";
+
+       
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and retrieves the actual weight from the intent
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse getActualWeightSession(Intent intent, Session session) {
+        
+       
+        String actual_weight_value = "zero";
+        String actual_weight_decimal = "zero";
+       
+        boolean flag = true;
+        int actualID = (int) Math.floor(Math.random() * ACTUAL_LIST.size());
+        
+        Slot actualweight = intent.getSlot(SLOT_ACTUAL_NUMBER);
+        if(actualweight!=null && actualweight.getValue()!=null)
+         actual_weight_value = actualweight.getValue();
+        
+        Slot actualweightdecimal = intent.getSlot(SLOT_ACTUAL_DECIMAL);
+        if(actualweightdecimal!=null && actualweightdecimal.getValue()!=null)
+         actual_weight_decimal = actualweightdecimal.getValue();
+        
+       
+        
+        int i=0,j=0;
+        double k=0,l=0;
+        double actual=0, target=0;
+        
+        try {
+        	if(!actual_weight_value.equals("zero"))
+            i = Integer.parseInt(actual_weight_value);
+        	if(!actual_weight_decimal.equals("zero"))
+                k = Integer.parseInt(actual_weight_decimal);
+        	
+        } catch (NumberFormatException e) {
+        	
+        }
+        actual = i+(k/10.5);
+        session.setAttribute("actual", i);
+       // target = j+(l/10.5);
+        String speechText, repromptText;
+
+        
+        if(actual_weight_value.equals("zero")||session.getAttribute("actual")==null){
+        	speechText = "Sorry, I did not hear that. Could you please tell your actual weight. <break time=\"0.1s\" /> For example you can say my actual weight is 60 k gs.";
+        	 repromptText = "Please specify your actual weight.";
+        	
+        }else{
+             speechText = ACTUAL_LIST.get(actualID)+", please specify your target weight in k gs. <break time=\"0.1s\" /> For example you can say, my target weight is 55 k gs";
+             repromptText = "Please specify your target weight in k gs. Or say help for assistance.";
+                     
+        }
+        
+       
+           
+               
+           
+       
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+
+    
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and retrieves the target weight from the intent
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse geTargetWeightSession(Intent intent, Session session) {
+        
+       
+       
+        String target_weight_value = "zero";
+        String target_weight_decimal = "zero";
+        boolean flag = true;
+        
+        
+        
+        
+        int targetID = (int) Math.floor(Math.random() * TARGET_LIST.size());
+        
+        Slot targetweight = intent.getSlot(SLOT_TARGET_NUMBER);
+        if(targetweight!=null && targetweight.getValue()!=null)
+         target_weight_value = targetweight.getValue();
+        System.out.println("target weight is "+target_weight_value);
+        
+        Slot targetweightdecimal = intent.getSlot(SLOT_TARGET_DECIMAL);
+        if(targetweightdecimal!=null && targetweightdecimal.getValue()!=null)
+         target_weight_decimal = targetweightdecimal.getValue();
+        
+        int i=0,j=0,actual=0;
+        double k=0,l=0;
+        double target=0;
+        
+        try {
+        	
+        	if(!target_weight_value.equals("zero"))
+                j = Integer.parseInt(target_weight_value);
+        	if(!target_weight_decimal.equals("zero"))
+                l = Integer.parseInt(target_weight_decimal);
+        } catch (NumberFormatException e) {
+        	
+        }
+        if(session.getAttribute("actual")!=null){
+        actual =  (Integer) session.getAttribute("actual");
+        }
+        target = j+(l/10.5);
+        String speechText, repromptText;
+
+        
+        if(target_weight_value.equals("zero") ){
+        	speechText = "Sorry, I did not hear that. Could you please tell your target weight.<break time=\"0.1s\" />  For example you can say my target weight is 55 k gs";
+        	repromptText = "Please specify your target weight.";
+        	flag = false;
+        }else if(target > actual){
+             speechText = "Sorry, I give training only for weight loss. Your target weight should be less than actual weight. <break time=\"0.1s\" /> You can say Alexa reset my actual and target weights or say help.";
+             flag = false;
+             repromptText ="You can say Alexa reset my actual and target weights or say help for assistance.";
+                    
+        }else if((actual - target) > 15 || target_weight_value.equals("0")){
+            speechText = "Your Target weight is not a realistic value. I recommend to keep your target weight simple and achievable <break time=\"0.1s\" /> You can choose realistic target weight nearer to your actual weight. <break time=\"0.1s\" /> Now please specify your target weight. For example, You can say my target weight is 55 kgs";
+            flag = false;
+            repromptText ="You can say Alexa reset my actual and target weights or say help for assistance.";
+                   
+       }else{
+        	speechText = "Okay ! Let me generate "+TARGET_LIST.get(targetID)+". <break time=\"0.3s\" /> Here is the plan, <break time=\"0.1s\" /> I sent you in mail <break time=\"0.1s\" /> along with target reach date. I will be adjusting your target date based on your progress. <break time=\"0.1s\" /> You can ask me to review your daily and weekly progress as well.";
+        	repromptText =
+                    "How can I help you with today";
+        }
+        
+       
+            if(session.getAttribute("email")==null){
+            	String[] details;
+            	
+            	JsonParse parse = new JsonParse();
+            	
+            	details = parse.parseString("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", null, session.getUser().getAccessToken());
+            	session.setAttribute("email", details[0]);
+            	session.setAttribute("username", details[1]);
+            }
+            
+            if(flag){
+            	/* commenting db updates
+            	if(dao.getUser((String)session.getAttribute("email"))){
+            		dao.updateData((String)session.getAttribute("username"),(String)session.getAttribute("email"),actual, target);
+            	}else{
+            dao.insertData((String)session.getAttribute("username"),(String)session.getAttribute("email"),actual, target);
+            	}
+            	*/
+            
+            try{
+            	send.sendMail((String)session.getAttribute("email"), "Customized Diet Plan", df2.format(target), (String)session.getAttribute("username"), (actual-j)*2 );
+            }catch(Exception e){
+            	speechText = "Sorry could not connect to mail box. Please try again after some time or say help if you like to try other services. Now, What would you like to do";
+            	repromptText = "You can say help for assistance.";
+            }
+            }    
+            
+
+       
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+
+    
+    
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and retrieves the last 24 hours steps count from google fit api
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse DayReviewSession(Intent intent, Session session) {
+    	
+    	
+      String speechText, repromptText;
+      boolean isAskResponse = true;
+      //dao.insertToken(session.getUser().getAccessToken(), "gudipudiswaroop@gmail.com");
+      System.out.println("day review token is "+session.getUser().getAccessToken());
+      AlexaFit fit = new AlexaFit();
+      int randomID = (int) Math.floor(Math.random() * RANDOM_LIST.size());
+      try{
+    	  int i;
+      i = Integer.parseInt(fit.getCurrentDayData(session.getUser().getAccessToken()));
+      if((i/20 - 500)>0){
+    	  speechText = "Here's your day review <break time=\"0.1s\" /> : You are doing a great job. Keep up the same momentum and your target weight is just few pounds away. <break time=\"0.2s\" /> Keep burning. <break time=\"0.2s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+      }else if(i<100){
+    	  speechText = "It is recommended that you take 10 thousand steps every day to reach your target. Please take a look at your google fit app to see how many more steps you need to take. <break time=\"0.1s\" /> Anything else I can help you with? Say help if you need assistance.";
+    	  isAskResponse = true;
+      }else{
+    	  String text = "";
+    	  if((10000-i)/1250>0){
+    		  String value = df2.format((10000-i)/1250.0);
+    		  if(value.contains(".")){
+    			 value = value.replace(".", " point ");
+    		  }
+    		  text = "or  <break time=\"0.1s\" /> walk"+value+"kilo meters";
+    	  }
+    	  //speechText = "Here's your day review <break time=\"0.1s\" /> : "+RANDOM_LIST.get(randomID)+" <break time=\"0.1s\" /> You burnt just "+(i/20)+" active calories. You need to burn more "+(500-i/20)+" calories. <break time=\"0.2s\" /> Take "+(500-i/20)*20+" more steps to reach today's target. <break time=\"0.1s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+    	  speechText = "Here's your day review <break time=\"0.1s\" /> : "+RANDOM_LIST.get(randomID)+" <break time=\"0.1s\" /> You took just "+i+" steps today. Take "+(500-i/20)*20+" more steps "+text+"to reach today's target. <break time=\"0.1s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+      }
+      }catch(Exception e){
+    	  speechText = "As a reminder, Make sure you have activity recorded on your google fit app.<break time=\"0.1s\" /> It is recommended that you take 10 thousand steps every day to reach your target. Please take a look at your google fit app to see how many more steps you need to take. <break time=\"0.1s\" /> Anything else I can help you with? Say help if you need assistance.";
+    	  isAskResponse = true;
+      }
+      
+     
+
+       repromptText = "Anything else I can help you with ? Just say help if you need assistance.";
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", isAskResponse);
+    }
+    
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and retrieves the last week steps count from google fit api
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse WeekReviewSession(Intent intent, Session session) {
+    	
+    	
+      String speechText, repromptText;
+      boolean isAskResponse = true;
+      //dao.insertToken(session.getUser().getAccessToken(), "gudipudiswaroop@gmail.com");
+      AlexaFit fit = new AlexaFit();
+      int randomID = (int) Math.floor(Math.random() * RANDOM_LIST.size());
+      try{
+    	  int i;
+      i = Integer.parseInt(fit.getWeeklyData(session.getUser().getAccessToken()));
+      if((i/20 - 3500)>0){
+    	  speechText = "Here's your weekly review <break time=\"0.1s\" /> :You are doing an Awesome job. <break time=\"0.1s\" /> The report is clean and slim. Keep up the same momentum and your target weight is just few pounds away. <break time=\"0.2s\" /> Keep burning. <break time=\"0.2s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+      }else{
+    	  speechText = "Here's your weekly review <break time=\"0.1s\" /> : "+RANDOM_LIST.get(randomID)+" <break time=\"0.1s\" /> You burnt just "+(i/20)+" active calories this week. You need to burn "+(3500-i/20)+" calories more. <break time=\"0.2s\" />. I can add an activity for you this coming sunday to get back you on track. <break time=\"0.1s\" /> Just say add an activity to my calendar.";
+      }
+      }catch(Exception e){
+    	  speechText = "Data is insufficient, Make sure you have activity recorded on your google fit app.<break time=\"0.1s\" />. <break time=\"0.1s\" /> However, keep up the pace of walking 10 thousand steps daily. <break time=\"0.1s\" /> I can add an activity for you coming sunday, just say add an activity to my calendar.<break time=\"0.1s\" />or say help for assistance";
+    	  isAskResponse = true;
+      }
+      
+     
+
+       repromptText = "Anything else I can help you with ? Just say help if you need assistance.";
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", isAskResponse);
+    }
+    
+    
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and adds activity to user's google calendar
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse getActivitySession(Intent intent, Session session) {
+    	
+    	
+      String speechText, repromptText;
+      String token = session.getUser().getAccessToken();
+      String details[];
+     // dao.insertToken(session.getUser().getAccessToken(), "gudipudiswaroop@gmail.com");
+      
+      JsonParse parse = new JsonParse();
+  	  details = parse.parseString("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", null, token);
+      AlexaFit fit = new AlexaFit();
+     if(fit.updateCalendar(details[0],token))
+      speechText = "Awesome, I have added an activity to your calendar this week.  <break time=\"0.2s\" />If you like to change the date, you can change it directly in your calendar. <break time=\"0.3s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+     else
+    	 speechText = "I have already added an event for you this Sunday. <break time=\"0.2s\" />If you like to change the date, you can change it directly in your calendar. <break time=\"0.3s\" /> Anything else I can help you with ? Just say help if you need assistance.";
+
+       repromptText = "Anything else I can help you with ? Just say help if you need assistance.";
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+    
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and plays random motivational audio tracks for users
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse getMotivateSession(Intent intent, Session session) {
+    	
+    	int motiveID = (int) Math.floor(Math.random() * MOTIV_LIST.size());
+       String speechText = MOTIV_LIST.get(motiveID)+" <break time=\"0.1s\" />Want more motivation ? Just say Alexa motivate me or say help for assistance.";
+         String   repromptText = "<break time=\"0.1s\" /> Want more motivation ? Just say Alexa motivate me";
+
+       
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the intent and gives a random healthy tip
+     *
+     * @param intent
+     *            intent for the request
+     * @return SpeechletResponse spoken and visual response the given intent
+     */
+    private SpeechletResponse getHealthyTipSession(Intent intent, Session session) {
+    	
+    	int tipID = (int) Math.floor(Math.random() * HEALTHY_LIST.size());
+       String speechText = HEALTHY_LIST.get(tipID)+"<break time=\"0.2s\" /> Do you like it? Go ahead and implement the tip <break time=\"0.1s\" /> or you can ask for another tip. <break time=\"0.1s\" /> Say help if you need assistance.";
+         String   repromptText = "<break time=\"0.1s\" /> I can get you more healthy tips. Just say Alexa give me another healthy tip or you can say help";
+
+       
+
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+
+    private SpeechletResponse setThankYou(Intent intent, Session session) {
+        String speechText;
+        boolean isAskResponse = false;
+          
+        
+        String user="";
+        String rate = "0";
+        if(session.getAttribute("username")!=null)
+        	user=(String)session.getAttribute("username");
+        
+            speechText = "Thank you for your time "+user+". Would love to talk to you again . Good Bye and Have a nice day";
+            
+       
+
+        return getSpeechletResponse(speechText, speechText, isAskResponse);
+    }
+   
+    /**
+     * Returns a Speechlet response for a speech and reprompt text.
+     */
+    private SpeechletResponse getSpeechletResponse(String speechText, String repromptText,
+            boolean isAskResponse) {
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Session");
+        card.setContent(speechText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        if (isAskResponse) {
+            // Create reprompt
+            PlainTextOutputSpeech repromptSpeech = new PlainTextOutputSpeech();
+            repromptSpeech.setText(repromptText);
+            Reprompt reprompt = new Reprompt();
+            reprompt.setOutputSpeech(repromptSpeech);
+
+            return SpeechletResponse.newAskResponse(speech, reprompt, card);
+
+        } else {
+            return SpeechletResponse.newTellResponse(speech, card);
+        }
+    }
+    
+    private SpeechletResponse newAskResponse(String stringOutput, boolean isOutputSsml,
+            String repromptText, boolean isRepromptSsml) {
+        OutputSpeech outputSpeech, repromptOutputSpeech;
+        
+        if (isOutputSsml) {
+            outputSpeech = new SsmlOutputSpeech();
+            ((SsmlOutputSpeech) outputSpeech).setSsml(stringOutput);
+        } else {
+            outputSpeech = new PlainTextOutputSpeech();
+            ((PlainTextOutputSpeech) outputSpeech).setText(stringOutput);
+        }
+
+        if (isRepromptSsml) {
+            repromptOutputSpeech = new SsmlOutputSpeech();
+            ((SsmlOutputSpeech) repromptOutputSpeech).setSsml(repromptText);
+        } else {
+            repromptOutputSpeech = new PlainTextOutputSpeech();
+            ((PlainTextOutputSpeech) repromptOutputSpeech).setText(repromptText);
+        }
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(repromptOutputSpeech);
+        if(!isRepromptSsml){
+        return SpeechletResponse.newTellResponse(outputSpeech);
+        }else{
+        	return SpeechletResponse.newAskResponse(outputSpeech, reprompt);
+        }
+        
+       
+        
+    }
+    
+    private SpeechletResponse newAskResponseWelcome(String stringOutput, boolean isOutputSsml,
+            String repromptText, boolean isRepromptSsml) {
+        OutputSpeech outputSpeech, repromptOutputSpeech;
+        LinkAccountCard card = new LinkAccountCard();
+        
+        if (isOutputSsml) {
+            outputSpeech = new SsmlOutputSpeech();
+            ((SsmlOutputSpeech) outputSpeech).setSsml(stringOutput);
+        } else {
+            outputSpeech = new PlainTextOutputSpeech();
+            ((PlainTextOutputSpeech) outputSpeech).setText(stringOutput);
+        }
+
+        if (isRepromptSsml) {
+            repromptOutputSpeech = new SsmlOutputSpeech();
+            ((SsmlOutputSpeech) repromptOutputSpeech).setSsml(repromptText);
+        } else {
+            repromptOutputSpeech = new PlainTextOutputSpeech();
+            ((PlainTextOutputSpeech) repromptOutputSpeech).setText(repromptText);
+        }
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(repromptOutputSpeech);
+        if(!isRepromptSsml){
+        
+        card.setTitle("Well-Being Guru");
+        
+        return SpeechletResponse.newTellResponse(outputSpeech, card);
+        }else{
+        	return SpeechletResponse.newAskResponse(outputSpeech, reprompt);
+        }
+        
+       
+        
+    }
+    
+    
+    /**
+     * Returns a Speechlet response for help.
+     */
+    
+    private SpeechletResponse getHelp(Intent intent, Session session) {
+        String speechText;
+        boolean isAskResponse = false;
+ 		speechText = "Here are some things you can say:<break time=\"0.1s\" /> Generate a diet plan, <break time=\"0.1s\" /> reset my target weight, <break time=\"0.1s\" /> review my today's progress, <break time=\"0.1s\" /> review my weekly progress <break time=\"0.1s\" /> play some motivation, or<break time=\"0.1s\" /> give me a healthy tip <break time=\"0.1s\" />You can also say, stop, if you're done.<break time=\"0.1s\" /> So, how can I help?";
+        		String repromptText = "<break time=\"0.5s\" /> I am here listening.<break time=\"0.2s\" />Let me know if you need assistance.";
+        	
+        return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + repromptText + "</speak>", true);
+    }
+    
+    /**
+     * Returns a user friendly default response for all invalid and out of scope intents.
+     */
+    private SpeechletResponse getDefaultResp() {
+        String speechText;
+        boolean isAskResponse = false;
+            speechText = "Sorry, I could not understand your request. <break time=\"0.1s\" /> You can say review my daily progress or ask me for help for assistance.";
+        
+            return newAskResponse("<speak>" + speechText + "</speak>", true, "<speak>" + speechText + "</speak>", true);
+    }
+    
+    
+
+public static SpeechletResponse newTellResponse(final OutputSpeech outputSpeech) {
+    if (outputSpeech == null) {
+        throw new IllegalArgumentException("OutputSpeech cannot be null");
+    }
+
+    SpeechletResponse response = new SpeechletResponse();
+    response.setShouldEndSession(true);
+    response.setOutputSpeech(outputSpeech);
+    return response;
+}
+
+
+    
+    
+}
+
