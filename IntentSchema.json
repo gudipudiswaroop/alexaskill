@@ -1,0 +1,176 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "well being guru",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "launch",
+                    "slots": [],
+                    "samples": [
+                        "to ready my information",
+                        "to launch"
+                    ]
+                },
+                {
+                    "name": "MotivateIntent",
+                    "slots": [],
+                    "samples": [
+                        "get me some motivation",
+                        "Play some motivation",
+                        "Motivate me"
+                    ]
+                },
+                {
+                    "name": "ActivityIntent",
+                    "slots": [],
+                    "samples": [
+                        "add now to my calendar",
+                        "please add activity",
+                        "get me back on track",
+                        "yes add activity",
+                        "add an activity"
+                    ]
+                },
+                {
+                    "name": "ResetIntent",
+                    "slots": [],
+                    "samples": [
+                        "reset actual target weights",
+                        "reset my actual weight",
+                        "reset my actual and target weights",
+                        "Reset my data",
+                        "Update my actual and target weight",
+                        "Reset my target weight",
+                        "Reset my weight"
+                    ]
+                },
+                {
+                    "name": "DayIntent",
+                    "slots": [],
+                    "samples": [
+                        "how I am doing today",
+                        "daily review",
+                        "Review my daily progress",
+                        "Review my today's progress"
+                    ]
+                },
+                {
+                    "name": "WeekIntent",
+                    "slots": [],
+                    "samples": [
+                        "weekly review",
+                        "review my this week progress",
+                        "review week",
+                        "how was my last week",
+                        "review my weekly progress"
+                    ]
+                },
+                {
+                    "name": "TipIntent",
+                    "slots": [],
+                    "samples": [
+                        "Daily Tip",
+                        "give me a wellness tip",
+                        "I want another tip",
+                        "give me a daily tip",
+                        "give me another tip",
+                        "what is my today's tip",
+                        "get me a healthy tip",
+                        "tip of the day",
+                        "give me a healthy tip"
+                    ]
+                },
+                {
+                    "name": "HelpIntent",
+                    "slots": [],
+                    "samples": [
+                        "more assistance",
+                        "need more help",
+                        "please help",
+                        "get me some help",
+                        "need help here",
+                        "help"
+                    ]
+                },
+                {
+                    "name": "ActualWeightIntent",
+                    "slots": [
+                        {
+                            "name": "ActualNumber",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "ActualDecimal",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "my actual weight is {ActualNumber} point {ActualDecimal} k g",
+                        "my actual weight is {ActualNumber} k g",
+                        "my actual weight is {ActualNumber} point {ActualDecimal} k gs",
+                        "my actual weight is {ActualNumber} kilograms",
+                        "my actual weight is {ActualNumber} k gs",
+                        "my actual weight is {ActualNumber} point {ActualDecimal}",
+                        "my actual weight is {ActualNumber}"
+                    ]
+                },
+                {
+                    "name": "TargetWeightIntent",
+                    "slots": [
+                        {
+                            "name": "TargetNumber",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "TargetDecimal",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "my target weight is {TargetNumber} k g",
+                        "my target is {TargetNumber} point {TargetDecimal} k g",
+                        "my target is {TargetNumber} point {TargetDecimal} k gs",
+                        "my target is {TargetNumber}",
+                        "my target weight is {TargetNumber} kilograms",
+                        "my target weight is {TargetNumber} k gs",
+                        "my target weight is {TargetNumber} point {TargetDecimal}",
+                        "my target weight is {TargetNumber}"
+                    ]
+                },
+                {
+                    "name": "CancelIntent",
+                    "slots": [],
+                    "samples": [
+                        "never mind",
+                        "cancel"
+                    ]
+                },
+                {
+                    "name": "DietIntent",
+                    "slots": [],
+                    "samples": [
+                        "generate a diet plan",
+                        "generate my diet plan",
+                        "plan my diet",
+                        "diet planning",
+                        "diet plan",
+                        "generate diet plan"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}
